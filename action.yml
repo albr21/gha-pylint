@@ -1,0 +1,73 @@
+name: gha-pylint
+description: |-
+  GitHub Action to run pylint, analyzing your Python code for potential errors and style issues.
+
+author: albr21
+branding:
+  icon: check-square
+  color: green
+
+inputs:
+  path:
+    description: Path to the Python code to analyze
+    required: false
+    default: src
+  lint-threshold:
+    description: Minimum pylint score to consider acceptable
+    required: false
+    default: '7.0'
+  pylintrc:
+    description: Path to a custom pylint configuration file (pylintrc)
+    required: false
+    default: ''
+  command-line-interpreter:
+    description: |-
+      Command line interpreter.
+      By default, it uses `bash`, but you can change it to `sh`.
+    required: false
+    default: bash
+
+runs:
+  using: composite
+  steps:
+    - name: Run pylint
+      run: |-
+        venv/bin/python -m pylint ${{ inputs.path }} \
+          --output-format=text \
+          ${{ inputs.pylintrc && format('--rcfile={0}', inputs.pylintrc) }} \
+          --exit-zero \
+          2>&1 | tee pylint-output.txt
+      shell: ${{ inputs.command-line-interpreter }}
+
+    - name: Score report
+      run: |-
+        score=$(sed -n 's/.*rated at \([0-9]*\.[0-9]*\).*/\1/p' pylint-output.txt)
+        score=${score:-0.00}
+        threshold=${{ inputs.lint-threshold }}
+
+        echo "score=${score}" >> "$GITHUB_OUTPUT"
+
+        if [ "$(python3 -c "print('1' if ${score} >= ${threshold} else '0')")" = "1" ]; then
+          icon=":white_check_mark:"
+        else
+          icon=":warning:"
+        fi
+
+        echo "## :mag: Pylint Score: ${icon}" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+
+        echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+        echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+        echo "| Score | **${score} / 10** |" >> "$GITHUB_STEP_SUMMARY"
+        echo "| Threshold | ${threshold} / 10 |" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+
+        if [ -s pylint-output.txt ]; then
+          echo "<details><summary>Full pylint output</summary>" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat pylint-output.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+        fi
+      shell: ${{ inputs.command-line-interpreter }}
