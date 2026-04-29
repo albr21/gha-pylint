@@ -1,10 +1,19 @@
-# <project-name>
+# gha-pylint
 
-<!-- A brief description of the project. -->
+A GitHub Action to run pylint, analyzing your Python code for potential errors and style issues.
+Working only on Linux based environment.
 
 ## Usage
 
-<!-- Provide instructions on how to use the project, including code examples if applicable. -->
+```yaml
+steps:
+  - name: Run pylint
+    uses: albr21/gha-pylint@1.0.0
+    with:
+      path: src
+      lint-threshold: '7.0'
+      pylintrc: .pylintrc
+```
 
 ## Contributing
 
