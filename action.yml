@@ -70,4 +70,9 @@ runs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           echo "</details>" >> "$GITHUB_STEP_SUMMARY"
         fi
+
+        if [ "$(python3 -c "print('1' if ${score} < ${threshold} else '0')")" = "1" ]; then
+          echo "::warning file=pylint-output.txt::Pylint score ${score} is below the threshold of ${threshold}"
+          exit 1
+        fi
       shell: ${{ inputs.command-line-interpreter }}
